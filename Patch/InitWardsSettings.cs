@@ -3,36 +3,36 @@ using UnityEngine.SceneManagement;
 
 namespace ShowBasesOnMap.Patch;
 
-[HarmonyPatch] internal class InitWardsSettings
+[HarmonyPatch] public class InitWardsSettings
 {
     [HarmonyPatch(typeof(ZNetScene), nameof(ZNetScene.Awake))] [HarmonyPostfix] [HarmonyWrapSafe]
-    internal static void Init(ZNetScene __instance)
+    private static void Init(ZNetScene __instance)
     {
         if (SceneManager.GetActiveScene().name != "main") return;
         if (!ZNet.instance.IsServer()) return;
 
         WatchObject.all = new();
 
-        AddWard("guard_stone");
-        AddWard("piece_workbench");
-        AddWard("portal_wood");
-        AddWard("Cart");
-        AddWard("fire_pit");
+        AddObj("guard_stone", true);
+        AddObj("piece_workbench");
+        AddObj("portal_wood");
+        AddObj("Cart");
+        AddObj("fire_pit");
         AddWardThorward();
     }
 
-    private static void AddWard(string name)
+    public static void AddObj(string name, bool isPrivateArea = false)
     {
         var prefab = ZNetScene.instance.GetPrefab(name.GetStableHashCode())?.GetComponent<Piece>();
-        if (prefab)
-        {
-            var areaComponent = prefab.GetComponent<PrivateArea>();
-            WatchObject.all.Add(new WatchObject(
-                name,
-                prefab.m_icon,
-                areaComponent.m_radius,
-                localizeKey: prefab.m_name));
-        }
+        if (!prefab) return;
+
+        var areaComponent = prefab.GetComponent<PrivateArea>();
+        WatchObject.all.Add(new WatchObject(
+            name,
+            prefab.m_icon,
+            areaComponent ? areaComponent.m_radius : 0,
+            localizeKey: prefab.m_name,
+            isPrivateArea: isPrivateArea));
     }
 
     private static void AddWardThorward()
@@ -44,6 +44,7 @@ namespace ShowBasesOnMap.Patch;
                 name,
                 prefab.m_icon,
                 radius: WardIsLovePlugin.WardRange().Value,
-                localizeKey: prefab.m_name));
+                localizeKey: prefab.m_name,
+                isPrivateArea: true));
     }
 }

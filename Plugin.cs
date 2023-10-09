@@ -1,5 +1,7 @@
 ﻿using System.Threading.Tasks;
 using BepInEx;
+using BepInEx.Configuration;
+using ShowBasesOnMap.Compatibility.WardIsLove;
 
 namespace ShowBasesOnMap;
 
@@ -11,34 +13,76 @@ public class Plugin : BaseUnityPlugin
         ModVersion = "1.0.0",
         ModGUID = $"com.{ModAuthor}.{ModName}";
 
+    private ConfigEntry<bool> isAdminOnly;
+    public static bool calculating = false;
+
     private void Awake()
     {
         CreateMod(this, ModName, ModAuthor, ModVersion);
+        isAdminOnly = mod.config("General", "IsAdminOnly", true, "Allows only admins to see this pins");
 
         StartUpdating();
     }
 
     private async void StartUpdating()
     {
+        var oldPins = new List<PinData>();
         while (true)
-            await UpdateWatchObjectsOnMap();
+        {
+            await Task.Delay(6000);
+            await UpdateWatchObjectsOnMap(oldPins);
+        }
     }
 
-    private async Task UpdateWatchObjectsOnMap()
+    private async Task UpdateWatchObjectsOnMap(List<PinData> oldPins)
     {
         if (!ZNet.instance) return;
-        if (!Minimap.instance) return;
         if (!ZNetScene.instance) return;
         if (!ZoneSystem.instance) return;
-
-        foreach (var (prefabName, icon, radius, localizeKey) in WatchObject.all)
+        var minimap = Minimap.instance;
+        if (!minimap) return;
+        calculating = true;
+        if (mod.IsAdmin || !isAdminOnly.Value)
         {
-            var result = await ZoneSystem.instance.GetWorldObjectsInAreaAsync(prefabName);
-            if (result.Count == 0) continue;
-            
-            //TODO: display on map as pings
+            var newPins = new List<PinData>();
+            foreach (var (prefabName, icon, radius, localizeKey, isPrivateArea) in WatchObject.all)
+            {
+                var result = await ZoneSystem.instance.GetWorldObjectsInAreaAsync(prefabName);
+                if (result.Count == 0) continue;
+                foreach (var zdo in result)
+                {
+                    var position = zdo.GetPosition();
+                    var pin = new PinData();
+                    pin.m_type = PinType.None;
+                    pin.m_animate = false;
+                    pin.m_checked = false;
+                    pin.m_icon = icon;
+                    pin.m_pos = position;
+                    pin.m_save = false;
+                    pin.m_name = "";
+                    // if (isPrivateArea)
+                    // {
+                    //     if (prefabName == "Thorward")
+                    //     {
+                    //         pin.m_name = ;
+                    //         Piece
+                    //     }
+                    //
+                    // }
+
+                    pin.m_NamePinData = new(pin);
+                    //TODO: show range of wards
+                    //TODO: show ward owner name
+
+                    newPins.Add(pin);
+                }
+            }
+
+            for (var i = 0; i < newPins.Count; i++) minimap.m_pins.Add(newPins[i]);
         }
 
-        await Task.Delay(1000);
+        calculating = false;
+        for (var i = 0; i < oldPins.Count; i++) minimap.DestroyPinMarker(oldPins[i]);
+        oldPins.Clear();
     }
 }

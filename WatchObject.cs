@@ -1,6 +1,6 @@
 ﻿namespace ShowBasesOnMap;
 
-public record WatchObject(string prefabName, Sprite icon, float radius, string localizeKey)
+public record WatchObject(string prefabName, Sprite icon, float radius, string localizeKey, bool isPrivateArea = false)
 {
     public static List<WatchObject> all = new();
 
@@ -8,4 +8,5 @@ public record WatchObject(string prefabName, Sprite icon, float radius, string l
     public Sprite icon = icon;
     public float radius = radius;
     public string localizeKey = localizeKey;
+    public bool isPrivateArea = isPrivateArea;
 }
