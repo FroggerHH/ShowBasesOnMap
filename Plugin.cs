@@ -26,17 +26,19 @@ public class Plugin : BaseUnityPlugin
 
     private async Task UpdateWatchObjectsOnMap()
     {
-        if(!ZNet.instance) return;
-        if(!Minimap.instance) return;
-        if(!ZNetScene.instance) return;
-        if(!ZoneSystem.instance) return;
+        if (!ZNet.instance) return;
+        if (!Minimap.instance) return;
+        if (!ZNetScene.instance) return;
+        if (!ZoneSystem.instance) return;
 
         foreach (var (prefabName, icon, radius, localizeKey) in WatchObject.all)
         {
+            var result = await ZoneSystem.instance.GetWorldObjectsInAreaAsync(prefabName);
+            if (result.Count == 0) continue;
             
+            //TODO: display on map as pings
         }
-        var result = await ZoneSystem.instance.GetWorldObjectsInAreaAsync();
-        
+
         await Task.Delay(1000);
     }
 }
