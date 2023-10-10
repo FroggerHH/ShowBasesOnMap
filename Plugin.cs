@@ -14,7 +14,6 @@ public class Plugin : BaseUnityPlugin
         ModGUID = $"com.{ModAuthor}.{ModName}";
 
     private ConfigEntry<bool> isAdminOnly;
-    public static bool calculating = false;
 
     private void Awake()
     {
@@ -24,30 +23,49 @@ public class Plugin : BaseUnityPlugin
         StartUpdating();
     }
 
+    List<PinData> addedPinDatas = new List<PinData>();
+
     private async void StartUpdating()
     {
-        var oldPins = new List<PinData>();
         while (true)
         {
             await Task.Delay(6000);
-            await UpdateWatchObjectsOnMap(oldPins);
+            await UpdateWatchObjectsOnMap();
         }
     }
 
-    private async Task UpdateWatchObjectsOnMap(List<PinData> oldPins)
+    private async Task UpdateWatchObjectsOnMap()
     {
         if (!ZNet.instance) return;
         if (!ZNetScene.instance) return;
         if (!ZoneSystem.instance) return;
         var minimap = Minimap.instance;
         if (!minimap) return;
-        calculating = true;
+        foreach (var pin in addedPinDatas)
+        {
+            pin.m_checked = true;
+            if (pin.m_uiElement != null)
+            {
+                Destroy(pin.m_uiElement.gameObject);
+                pin.m_uiElement = null;
+            }
+
+            if (pin.m_NamePinData != null)
+            {
+                Destroy(pin.m_NamePinData.PinNameGameObject);
+                pin.m_NamePinData.PinNameGameObject = null;
+            }
+
+            minimap.m_pins.Remove(pin);
+        }
+
+        addedPinDatas.Clear();
+
         if (mod.IsAdmin || !isAdminOnly.Value)
         {
-            var newPins = new List<PinData>();
-            foreach (var (prefabName, icon, radius, localizeKey, isPrivateArea) in WatchObject.all)
+            foreach (var (prefabName, icon, check) in WatchObject.all)
             {
-                var result = await ZoneSystem.instance.GetWorldObjectsInAreaAsync(prefabName);
+                var result = await ZoneSystem.instance.GetWorldObjectsInAreaAsync(prefabName, check);
                 if (result.Count == 0) continue;
                 foreach (var zdo in result)
                 {
@@ -60,29 +78,15 @@ public class Plugin : BaseUnityPlugin
                     pin.m_pos = position;
                     pin.m_save = false;
                     pin.m_name = "";
-                    // if (isPrivateArea)
-                    // {
-                    //     if (prefabName == "Thorward")
-                    //     {
-                    //         pin.m_name = ;
-                    //         Piece
-                    //     }
-                    //
-                    // }
-
                     pin.m_NamePinData = new(pin);
+
                     //TODO: show range of wards
                     //TODO: show ward owner name
-
-                    newPins.Add(pin);
+                    addedPinDatas.Add(pin);
                 }
             }
-
-            for (var i = 0; i < newPins.Count; i++) minimap.m_pins.Add(newPins[i]);
         }
 
-        calculating = false;
-        for (var i = 0; i < oldPins.Count; i++) minimap.DestroyPinMarker(oldPins[i]);
-        oldPins.Clear();
+        foreach (var pinData in addedPinDatas) minimap.m_pins.Add(pinData);
     }
 }

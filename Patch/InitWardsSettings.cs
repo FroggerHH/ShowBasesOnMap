@@ -1,4 +1,6 @@
-﻿using ShowBasesOnMap.Compatibility.WardIsLove;
+﻿using System.Runtime.CompilerServices;
+using ShowBasesOnMap.Compatibility.WardIsLove;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 
 namespace ShowBasesOnMap.Patch;
@@ -13,38 +15,64 @@ namespace ShowBasesOnMap.Patch;
 
         WatchObject.all = new();
 
-        AddObj("guard_stone", true);
+        AddObj("guard_stone");
         AddObj("piece_workbench");
         AddObj("portal_wood");
         AddObj("Cart");
         AddObj("fire_pit");
-        AddWardThorward();
+        AddObj("Thorward");
+        AddObj("Dragon");
+        AddObj("Deer");
+        AddObj("Eikthyr");
+        AddObj("gd_king");
+        AddObj("GoblinKing");
+        AddObj("SeekerQueen");
+        AddObj("TheHive");
+        AddObj("Hive");
+        AddObj("TrainingDummy");
+        AddObj("Bonemass");
+        AddObj("Troll");
+        AddObj("Wolf", zdo => zdo.GetBool(ZDOVars.s_tamed, false));
     }
 
-    public static void AddObj(string name, bool isPrivateArea = false)
+    public static void AddObj(string name, Func<ZDO, bool> check = null)
     {
-        var prefab = ZNetScene.instance.GetPrefab(name.GetStableHashCode())?.GetComponent<Piece>();
+        var prefab = ZNetScene.instance.GetPrefab(name.GetStableHashCode());
         if (!prefab) return;
-
-        var areaComponent = prefab.GetComponent<PrivateArea>();
-        WatchObject.all.Add(new WatchObject(
-            name,
-            prefab.m_icon,
-            areaComponent ? areaComponent.m_radius : 0,
-            localizeKey: prefab.m_name,
-            isPrivateArea: isPrivateArea));
+        Character character = null;
+        Piece piece = null;
+        if (!prefab.TryGetComponent(out piece) && !prefab.TryGetComponent(out character)) return;
+        if (character)
+        {
+            LoadImageFromWEB($@"https://valheim-modding.github.io/Jotunn/Documentation/images/characters/{name}.png",
+                sprite => WatchObject.all.Add(new WatchObject(name, sprite, check)));
+        } else if (piece)
+        {
+            WatchObject.all.Add(new WatchObject(name, piece.m_icon, check));
+        }
     }
 
-    private static void AddWardThorward()
+
+    public static void LoadImageFromWEB(string url, Action<Sprite> callback)
     {
-        var name = "Thorward";
-        var prefab = ZNetScene.instance.GetPrefab(name.GetStableHashCode())?.GetComponent<Piece>();
-        if (prefab)
-            WatchObject.all.Add(new WatchObject(
-                name,
-                prefab.m_icon,
-                radius: WardIsLovePlugin.WardRange().Value,
-                localizeKey: prefab.m_name,
-                isPrivateArea: true));
+        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out _)) return;
+
+        GetPlugin().StartCoroutine(_Internal_LoadImage(url, callback));
+    }
+
+    private static IEnumerator _Internal_LoadImage(string url, Action<Sprite> callback)
+    {
+        using UnityWebRequest request = UnityWebRequestTexture.GetTexture(url);
+        yield return request.SendWebRequest();
+        if (request.result is UnityWebRequest.Result.Success)
+        {
+            Texture2D texture = DownloadHandlerTexture.GetContent(request);
+            if (texture.width == 0 || texture.height == 0) yield break;
+            Texture2D temp = new Texture2D(texture.width, texture.height, TextureFormat.RGBA32, false);
+            temp.SetPixels(texture.GetPixels());
+            temp.Apply();
+            var sprite = Sprite.Create(texture, new(0, 0, texture.width, texture.height), new(0.5f, 0.5f));
+            callback?.Invoke(sprite);
+        }
     }
 }
