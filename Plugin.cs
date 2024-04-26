@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using BepInEx;
 using BepInEx.Configuration;
+using JustAFrogger;
 using ShowBasesOnMap.Compatibility.WardIsLove;
 
 namespace ShowBasesOnMap;
@@ -10,14 +11,14 @@ public class Plugin : BaseUnityPlugin
 {
     private const string ModName = "ShowBasesOnMap",
         ModAuthor = "Frogger",
-        ModVersion = "1.0.0",
+        ModVersion = "1.1.0",
         ModGUID = $"com.{ModAuthor}.{ModName}";
 
     private static ConfigEntry<bool> isAdminOnly;
 
     private void Awake()
     {
-        CreateMod(_plugin: this, ModName, ModAuthor, ModVersion, ModGUID, pathAll: true);
+        CreateMod(this, ModName, ModAuthor, ModVersion, ModGUID);
         isAdminOnly = config("General", "IsAdminOnly", true, "Allows only admins to see this pins");
 
         StartUpdating();
@@ -64,7 +65,7 @@ public class Plugin : BaseUnityPlugin
                         pin.m_name = "";
                         pin.m_NamePinData = new(pin);
 
-                        //TODO: show range of wards
+                        //TODO: show range of wards 
                         //TODO: show ward owner name
                         addedPinDatas.Add(pin);
                     }

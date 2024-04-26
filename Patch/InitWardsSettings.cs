@@ -7,11 +7,11 @@ namespace ShowBasesOnMap.Patch;
 
 [HarmonyPatch] public class InitWardsSettings
 {
-    [HarmonyPatch(typeof(ZNetScene), nameof(ZNetScene.Awake))] [HarmonyPostfix] [HarmonyWrapSafe]
+    [HarmonyPatch(typeof(ZNetScene), nameof(ZNetScene.Awake))] [HarmonyPostfix] [HarmonyWrapSafe] [HarmonyPriority(-99)]
     private static void Init(ZNetScene __instance)
     {
         if (SceneManager.GetActiveScene().name != "main") return;
-        if (!ZNet.instance.IsServer()) return;
+        // if (!ZNet.instance.IsServer()) return;
 
         WatchObject.all = new();
 
@@ -32,12 +32,18 @@ namespace ShowBasesOnMap.Patch;
         AddObj("TrainingDummy");
         AddObj("Bonemass");
         AddObj("Troll");
-        AddObj("Wolf", zdo => zdo.GetBool(ZDOVars.s_tamed, false));
+        AddObj("ChunkLoader_stone");
+        AddObj("Troll_Summoned");
+
+        foreach (var obj in ZNetScene.instance.m_prefabs.Where(x => x.GetComponent<Tameable>()))
+        {
+            AddObj(obj.name, zdo => zdo.GetBool(ZDOVars.s_tamed, false));
+        }
     }
 
     public static void AddObj(string name, Func<ZDO, bool> check = null)
     {
-        var prefab = ZNetScene.instance.GetPrefab(name.GetStableHashCode());
+        var prefab = ZNetScene.instance.GetPrefab(name);
         if (!prefab) return;
         Character character = null;
         Piece piece = null;
@@ -49,7 +55,7 @@ namespace ShowBasesOnMap.Patch;
         } else if (piece)
         {
             WatchObject.all.Add(new WatchObject(name, piece.m_icon, check));
-        }
+        } else DebugError("Couldn't find prefab with name " + name);
     }
 
 

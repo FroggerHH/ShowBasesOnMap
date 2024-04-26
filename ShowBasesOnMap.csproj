@@ -53,7 +53,7 @@
             <HintPath>..\..\..\Steam\steamapps\common\Valheim\BepInEx\core\BepInEx.dll</HintPath>
         </Reference>
         <Reference Include="JFUtils">
-            <HintPath>..\Utils\JFUtils.dll</HintPath>
+          <HintPath>..\Utils\JFUtils.dll</HintPath>
         </Reference>
         <Reference Include="Microsoft.CSharp" />
         <Reference Include="System" />
@@ -89,6 +89,7 @@
         <Compile Include="Compatibility\WardIsLove\WardMonoscript.cs" />
         <Compile Include="Compatibility\WardIsLove\WardMonoscriptExt.cs" />
         <Compile Include="GlobalUsings.cs" />
+        <Compile Include="LoadUnityCode.cs" />
         <Compile Include="Patch\InitWardsSettings.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
